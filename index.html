@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your Sudoku certificate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Playfair+Display:wght@700&family=Great+Vibes&display=swap" rel="stylesheet">
+<style>
+  :root { --ink:#222; --muted:#5f5a50; --gold:#B8923A; --goldd:#7E5E1C; --cream:#FBF7EE; --line:#d9cfb8; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#f4efe4; color:var(--ink); font-family:"EB Garamond", Georgia, serif; font-size:21px; line-height:1.45; }
+  main { max-width:1100px; margin:0 auto; padding:28px 20px 60px; }
+  h1 { font-family:"Playfair Display", Georgia, serif; font-size:40px; margin:0 0 6px; color:#3b2f17; }
+  .lead { margin:0 0 26px; color:var(--muted); font-size:22px; }
+  .wrap { display:grid; grid-template-columns:minmax(0, 380px) minmax(0, 1fr); gap:32px; align-items:start; }
+  @media (max-width:820px) { .wrap { grid-template-columns:minmax(0,1fr); } }
+  .panel { background:#fffdf8; border:1px solid var(--line); border-radius:14px; padding:24px; }
+  .step { font-weight:600; font-size:22px; margin:0 0 10px; }
+  .step + .step, .field + .step { margin-top:24px; }
+  .vols, .papers { display:flex; gap:10px; flex-wrap:wrap; }
+  .choice { flex:1 1 0; min-width:90px; font:inherit; font-size:20px; padding:14px 10px; border-radius:10px; border:2px solid var(--line); background:#fff; color:var(--ink); cursor:pointer; text-align:center; }
+  .choice .sw { display:block; width:28px; height:8px; border-radius:4px; margin:6px auto 0; }
+  .choice[aria-pressed="true"] { border-color:var(--goldd); background:#fbf1d8; box-shadow:0 0 0 2px var(--gold) inset; }
+  label { display:block; font-weight:600; margin:0 0 8px; font-size:22px; }
+  input[type=text] { width:100%; font:inherit; font-size:24px; padding:14px 14px; border-radius:10px; border:2px solid var(--line); background:#fff; color:var(--ink); }
+  input[type=text]:focus, .choice:focus-visible, .go:focus-visible { outline:3px solid var(--gold); outline-offset:2px; }
+  .hint { color:var(--muted); font-size:18px; margin:6px 0 0; }
+  .field { margin-top:24px; }
+  .go { width:100%; margin-top:28px; font:inherit; font-size:24px; font-weight:600; padding:18px; border-radius:12px; border:0; background:#7E5E1C; color:#fff; cursor:pointer; }
+  .go:hover { background:#694e16; }
+  .msg { margin:14px 0 0; font-size:19px; min-height:1.4em; }
+  .msg.err { color:#9b2226; }
+  .preview { background:#fff; border:1px solid var(--line); border-radius:14px; padding:14px; }
+  canvas { display:none; }
+  .saveimg { margin:12px 0 0; color:var(--muted); font-size:18px; }
+  .saveimg img { display:none; }
+  footer { margin-top:34px; color:var(--muted); font-size:17px; text-align:center; }
+  @media print {
+    @page { margin: 0; }
+    body { background:#fff; }
+    main > h1, .lead, .panel, .saveimg, footer { display:none !important; }
+    main { padding:0; max-width:none; }
+    .wrap { display:block; }
+    .preview { border:0; padding:0; }
+    #pv { width:100%; height:100vh; object-fit:contain; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Your Sudoku certificate</h1>
+  <p class="lead">Well done on finishing all 100 puzzles! Fill in your name, and we'll make you a gold certificate to print and keep.</p>
+
+  <div class="wrap">
+    <form class="panel" id="form" novalidate>
+      <p class="step">1. Which book did you finish?</p>
+      <div class="vols" role="group" aria-label="Book">
+        <button type="button" class="choice" data-vol="1" aria-pressed="true">Volume 1<span class="sw" style="background:#1B3252"></span></button>
+        <button type="button" class="choice" data-vol="2" aria-pressed="false">Volume 2<span class="sw" style="background:#004225"></span></button>
+        <button type="button" class="choice" data-vol="3" aria-pressed="false">Volume 3<span class="sw" style="background:#6E1423"></span></button>
+      </div>
+
+      <div class="field">
+        <label for="name">2. Your name</label>
+        <input type="text" id="name" autocomplete="name" placeholder="Margaret Smith" maxlength="60">
+        <p class="msg err" id="nameErr" role="alert"></p>
+      </div>
+
+      <div class="field">
+        <label for="date">3. The date you finished</label>
+        <input type="text" id="date" maxlength="40">
+        <p class="hint">We've filled in today's date. You can change it.</p>
+      </div>
+
+      <p class="step">4. Your paper size</p>
+      <div class="papers" role="group" aria-label="Paper size">
+        <button type="button" class="choice" data-paper="a4" aria-pressed="true">A4</button>
+        <button type="button" class="choice" data-paper="letter" aria-pressed="false">US Letter</button>
+      </div>
+
+      <button type="submit" class="go">Save my certificate</button>
+      <button type="button" class="go" id="printBtn" style="background:#fff;color:#7E5E1C;border:2px solid #7E5E1C;margin-top:12px">Print it now</button>
+      <p class="msg" id="msg" role="status"></p>
+    </form>
+
+    <div>
+      <div class="preview"><canvas id="cv" width="1275" height="1650" hidden></canvas><img id="pv" alt="Preview of your certificate" style="width:100%;height:auto;display:block"></div>
+      <p class="saveimg" id="saveimg">Tip: open the saved file and choose Print. On a phone or tablet you can also press and hold the picture above to save it.</p>
+    </div>
+  </div>
+  <footer>Large Print Sudoku</footer>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(function () {
+  var ACC = { 1: "#1B3252", 2: "#004225", 3: "#6E1423" };
+  var LEVEL = { 1: "from Easy to Medium", 2: "from Medium to Hard", 3: "from Hard to Genius" };
+  var GOLD = "#B8923A", GOLDD = "#7E5E1C", GOLDL = "#E9D59A", CREAM = "#FCF8EE", INK = "#1E1E1E", GREY = "#6b6b6b";
+  var state = { vol: 1, paper: "a4" };
+  var cv = document.getElementById("cv"), g = cv.getContext("2d");
+  var nameEl = document.getElementById("name"), dateEl = document.getElementById("date");
+  var W = 8.5, H = 11;
+
+  try { var u = new URLSearchParams(location.search).get("v") || location.hash.replace("#", "").replace("volume-", ""); if (/^[123]$/.test(u)) state.vol = +u; } catch (e) {}
+  dateEl.value = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+
+  function setPressed(sel, attr, val) {
+    document.querySelectorAll(sel).forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute(attr) === String(val))); });
+  }
+
+  function draw(canvas) {
+    var c = canvas.getContext("2d"), s = canvas.width / W;
+    function X(x) { return x * s; } function Y(y) { return (H - y) * s; }
+    function poly(pts, fill, stroke, lw) {
+      c.beginPath(); c.moveTo(X(pts[0][0]), Y(pts[0][1]));
+      for (var i = 1; i < pts.length; i++) c.lineTo(X(pts[i][0]), Y(pts[i][1]));
+      c.closePath(); c.fillStyle = fill; c.fill();
+      if (stroke) { c.strokeStyle = stroke; c.lineWidth = lw * s / 72; c.stroke(); }
+    }
+    function rect(x, y, w, h, color, lw) { c.strokeStyle = color; c.lineWidth = lw * s / 72; c.strokeRect(X(x), Y(y + h), w * s, h * s); }
+    function diamond(x, y, r, fill) { poly([[x, y + r], [x + r, y], [x, y - r], [x - r, y]], fill); }
+    function circle(x, y, r, fill, stroke, lw) { c.beginPath(); c.arc(X(x), Y(y), r * s, 0, 2 * Math.PI); if (fill) { c.fillStyle = fill; c.fill(); } if (stroke) { c.strokeStyle = stroke; c.lineWidth = lw * s / 72; c.stroke(); } }
+    function text(t, x, y, font, pt, color, maxw) {
+      var size = pt;
+      c.font = font.replace("{}", (size * s / 72) + "px");
+      if (maxw) { while (c.measureText(t).width > maxw * s && size > 10) { size -= 1; c.font = font.replace("{}", (size * s / 72) + "px"); } }
+      c.fillStyle = color; c.textAlign = "center"; c.textBaseline = "alphabetic"; c.fillText(t, X(x), Y(y));
+    }
+    var acc = ACC[state.vol];
+    c.fillStyle = "#fff"; c.fillRect(0, 0, canvas.width, canvas.height);
+    var x0 = 0.6, x1 = W - 0.6, bot = 0.6, top = H - 0.6, w = x1 - x0, h = top - bot, cx = W / 2;
+    c.fillStyle = CREAM; c.fillRect(X(x0), Y(top), w * s, h * s);
+    rect(x0 + 6 / 72, bot + 6 / 72, w - 12 / 72, h - 12 / 72, GOLD, 9);
+    rect(x0, bot, w, h, GOLDD, 0.8); rect(x0 + 0.28, bot + 0.28, w - 0.56, h - 0.56, GOLDD, 0.8);
+    rect(x0 + 0.34, bot + 0.34, w - 0.68, h - 0.68, GOLD, 0.5);
+    [[x0 + 0.28, bot + 0.28], [x1 - 0.28, bot + 0.28], [x0 + 0.28, top - 0.28], [x1 - 0.28, top - 0.28]].forEach(function (p) { diamond(p[0], p[1], 0.13, GOLD); diamond(p[0], p[1], 0.06, CREAM); });
+
+    text("Certificate", cx, H - 2.1, "700 {} 'Playfair Display', Georgia, serif", 54, acc);
+    text("of Achievement", cx, H - 2.65, "italic 400 {} 'EB Garamond', Georgia, serif", 30, GOLDD);
+    c.strokeStyle = GOLD; c.lineWidth = s / 72;
+    c.beginPath(); c.moveTo(X(cx - 1.6), Y(H - 2.95)); c.lineTo(X(cx - 0.15), Y(H - 2.95)); c.moveTo(X(cx + 0.15), Y(H - 2.95)); c.lineTo(X(cx + 1.6), Y(H - 2.95)); c.stroke();
+    diamond(cx, H - 2.95, 0.07, GOLD);
+    text("This is to certify that", cx, H - 3.75, "400 {} 'EB Garamond', Georgia, serif", 23, INK);
+    var nm = nameEl.value.trim();
+    text(nm || " ", cx, H - 4.75, "400 {} 'Great Vibes', cursive", 60, INK, 5.6);
+    c.strokeStyle = GREY; c.lineWidth = s / 72;
+    c.beginPath(); c.moveTo(X(cx - 2.8), Y(H - 4.95)); c.lineTo(X(cx + 2.8), Y(H - 4.95)); c.stroke();
+    text("has solved all 100 puzzles in", cx, H - 5.6, "400 {} 'EB Garamond', Georgia, serif", 23, INK);
+    text("Large Print Sudoku, Volume " + state.vol, cx, H - 6.15, "700 {} 'Playfair Display', Georgia, serif", 27, acc);
+    text(LEVEL[state.vol], cx, H - 6.55, "italic 400 {} 'EB Garamond', Georgia, serif", 21, GREY);
+    if (state.vol === 3) text("and is hereby declared a true Sudoku Genius", cx, H - 6.95, "italic 400 {} 'EB Garamond', Georgia, serif", 21, GOLDD);
+
+    var dy = bot + 1.45;
+    text(dateEl.value.trim() || " ", x0 + 1.95, dy + 0.1, "400 {} 'EB Garamond', Georgia, serif", 21, INK, 2.6);
+    c.strokeStyle = GREY; c.beginPath(); c.moveTo(X(x0 + 0.7), Y(dy)); c.lineTo(X(x0 + 3.2), Y(dy)); c.stroke();
+    text("Date", x0 + 1.95, dy - 0.32, "400 {} 'EB Garamond', Georgia, serif", 18, GREY);
+
+    var sx = x1 - 1.75, sy = dy + 0.75, R = 0.9;
+    [-1, 1].forEach(function (sg) {
+      var a = (-90 + sg * 22) * Math.PI / 180, L = R * 1.9, wd = R * 0.42, dx = Math.cos(a), dyy = Math.sin(a), nx = -dyy, ny = dx;
+      var bx = sx + dx * R * 0.2, by = sy + dyy * R * 0.2, ex = sx + dx * L, ey = sy + dyy * L;
+      poly([[bx + nx * wd / 2, by + ny * wd / 2], [ex + nx * wd / 2, ey + ny * wd / 2], [ex - dx * wd * 0.9, ey - dyy * wd * 0.9], [ex - nx * wd / 2, ey - ny * wd / 2], [bx - nx * wd / 2, by - ny * wd / 2]], acc);
+    });
+    var pts = [], n = 44;
+    for (var i = 0; i < 2 * n; i++) { var r = i % 2 === 0 ? R : R * 0.9, t = Math.PI * i / n; pts.push([sx + r * Math.cos(t), sy + r * Math.sin(t)]); }
+    poly(pts, GOLD, GOLDD, 0.8);
+    circle(sx, sy, R * 0.78, GOLDL, GOLDD, 1.2); circle(sx, sy, R * 0.66, null, GOLDD, 0.6);
+    for (var k = 0; k < 24; k++) { var tt = 2 * Math.PI * k / 24; circle(sx + R * 0.72 * Math.cos(tt), sy + R * 0.72 * Math.sin(tt), R * 0.018, GOLDD); }
+    text("100", sx, sy - R * 0.14, "700 {} 'Playfair Display', Georgia, serif", R * 0.6 * 72, GOLDD);
+    text("PUZZLES", sx, sy + R * 0.36, "600 {} 'EB Garamond', Georgia, serif", R * 0.17 * 72, GOLDD);
+    text("SOLVED", sx, sy - R * 0.47, "600 {} 'EB Garamond', Georgia, serif", R * 0.17 * 72, GOLDD);
+  }
+
+  function render() { draw(cv); try { document.getElementById("pv").src = cv.toDataURL("image/png"); } catch (e) {} }
+
+  document.querySelectorAll("[data-vol]").forEach(function (b) {
+    b.addEventListener("click", function () { state.vol = +b.getAttribute("data-vol"); setPressed("[data-vol]", "data-vol", state.vol); render(); });
+  });
+  document.querySelectorAll("[data-paper]").forEach(function (b) {
+    b.addEventListener("click", function () { state.paper = b.getAttribute("data-paper"); setPressed("[data-paper]", "data-paper", state.paper); });
+  });
+  nameEl.addEventListener("input", function () { document.getElementById("nameErr").textContent = ""; render(); });
+  dateEl.addEventListener("input", render);
+  setPressed("[data-vol]", "data-vol", state.vol);
+
+
+  document.getElementById("form").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    var msg = document.getElementById("msg");
+    if (!nameEl.value.trim()) { document.getElementById("nameErr").textContent = "Type your name first."; nameEl.focus(); return; }
+    msg.className = "msg"; msg.textContent = "Making your certificate…";
+    try {
+      var big = document.createElement("canvas"); big.width = 2550; big.height = 3300; draw(big);
+      var img = big.toDataURL("image/jpeg", 0.92);
+      var jsPDF = window.jspdf.jsPDF;
+      var fmt = state.paper === "a4" ? [210, 297] : [215.9, 279.4];
+      var pdf = new jsPDF({ unit: "mm", format: fmt, orientation: "portrait" });
+      var iw = 215.9, ih = 279.4, sc = Math.min((fmt[0] - 6) / iw, (fmt[1] - 6) / ih, 1);
+      pdf.addImage(img, "JPEG", (fmt[0] - iw * sc) / 2, (fmt[1] - ih * sc) / 2, iw * sc, ih * sc);
+      var blob = pdf.output("blob");
+      var fname = "Sudoku certificate - " + nameEl.value.trim().replace(/[^\w \-]/g, "") + ".pdf";
+      pdf.save(fname);
+      msg.textContent = "Saved to your Downloads. Open the file and choose Print.";
+    } catch (err) {
+      msg.className = "msg err"; msg.textContent = "That didn't work. Try again, or press and hold the picture to save it.";
+    }
+  });
+
+  document.getElementById("printBtn").addEventListener("click", function () {
+    if (!nameEl.value.trim()) { document.getElementById("nameErr").textContent = "Type your name first."; nameEl.focus(); return; }
+    render(); window.print();
+  });
+  render();
+  if (document.fonts && document.fonts.load) {
+    Promise.all([document.fonts.load("60px 'Great Vibes'"), document.fonts.load("54px 'Playfair Display'"), document.fonts.load("23px 'EB Garamond'"), document.fonts.load("italic 23px 'EB Garamond'")]).then(render, render);
+  }
+})();
+</script>
+</body>
+</html>
